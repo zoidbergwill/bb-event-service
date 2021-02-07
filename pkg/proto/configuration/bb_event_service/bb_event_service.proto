@@ -3,6 +3,7 @@ syntax = "proto3";
 package buildbarn.configuration.bb_event_service;
 
 import "pkg/proto/configuration/blobstore/blobstore.proto";
+import "pkg/proto/configuration/global/global.proto";
 import "pkg/proto/configuration/grpc/grpc.proto";
 
 option go_package = "github.com/buildbarn/bb-event-service/pkg/proto/configuration/bb_event_service";
@@ -15,9 +16,12 @@ message ApplicationConfiguration {
   string http_listen_address = 2;
 
   // gRPC servers to spawn to listen for requests from clients.
-  repeated buildbarn.configuration.grpc.GRPCServerConfiguration grpc_servers =
+  repeated buildbarn.configuration.grpc.ServerConfiguration grpc_servers =
       3;
 
   // Maximum Protobuf message size to unmarshal.
   int64 maximum_message_size_bytes = 4;
+
+  // Common configuration options that apply to all Buildbarn binaries.
+  buildbarn.configuration.global.Configuration global = 5;
 }

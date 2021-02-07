@@ -1,8 +1,8 @@
 diff --git src/main/java/com/google/devtools/build/lib/buildeventstream/proto/BUILD src/main/java/com/google/devtools/build/lib/buildeventstream/proto/BUILD
-index 0a91766e2e..ce0a53bbc0 100644
+index 118b30ce8..8b614d9e7 100644
 --- src/main/java/com/google/devtools/build/lib/buildeventstream/proto/BUILD
 +++ src/main/java/com/google/devtools/build/lib/buildeventstream/proto/BUILD
-@@ -28,3 +28,20 @@ proto_library(
+@@ -31,3 +31,20 @@ proto_library(
          "//src/main/protobuf:invocation_policy_proto",
      ],
  )
@@ -14,33 +14,34 @@ index 0a91766e2e..ce0a53bbc0 100644
 +    name = "build_event_stream_go_proto",
 +    importpath = "github.com/bazelbuild/bazel/src/main/java/com/google/devtools/build/lib/buildeventstream/proto",
 +    proto = ":build_event_stream_proto",
-+    deps = ["//src/main/protobuf:go_default_library"],
++    deps = ["//src/main/protobuf:protobuf_go"],
 +)
 +
 +go_library(
-+    name = "go_default_library",
++    name = "build_event_stream_go",
 +    embed = [":build_event_stream_go_proto"],
 +    importpath = "github.com/bazelbuild/bazel/src/main/java/com/google/devtools/build/lib/buildeventstream/proto",
 +    visibility = ["//visibility:public"],
 +)
 diff --git src/main/java/com/google/devtools/build/lib/buildeventstream/proto/build_event_stream.proto src/main/java/com/google/devtools/build/lib/buildeventstream/proto/build_event_stream.proto
-index 79e11447b9..c7bf9c4765 100644
+index 9a067653a..f53f5899d 100644
 --- src/main/java/com/google/devtools/build/lib/buildeventstream/proto/build_event_stream.proto
 +++ src/main/java/com/google/devtools/build/lib/buildeventstream/proto/build_event_stream.proto
-@@ -21,6 +21,7 @@ import "src/main/protobuf/invocation_policy.proto";
- 
+@@ -23,6 +23,8 @@ import "src/main/protobuf/invocation_policy.proto";
  option java_package = "com.google.devtools.build.lib.buildeventstream";
  option java_outer_classname = "BuildEventStreamProtos";
-+option go_package = "github.com/bazelbuild/bazel/src/main/java/com/google/devtools/build/lib/buildeventstream/proto";
  
++option go_package = "github.com/bazelbuild/bazel/src/main/java/com/google/devtools/build/lib/buildeventstream/proto";
++
  // Identifier for a build event. It is deliberately structured to also provide
  // information about which build target etc the event is related to.
+ //
 diff --git src/main/protobuf/BUILD src/main/protobuf/BUILD
-index 8056e19349..d5c6f8df70 100644
+index f64c1d490..b1f3d3036 100644
 --- src/main/protobuf/BUILD
 +++ src/main/protobuf/BUILD
-@@ -204,3 +204,35 @@ filegroup(
-         ":remote_execution_log_java_proto_srcs",
+@@ -298,3 +298,42 @@ filegroup(
+         ":xcode_java_proto_srcs",
      ],
  )
 +
@@ -51,6 +52,12 @@ index 8056e19349..d5c6f8df70 100644
 +    name = "command_line_go_proto",
 +    importpath = "github.com/bazelbuild/bazel/src/main/protobuf",
 +    proto = ":command_line_proto",
++)
++
++go_proto_library(
++    name = "failure_details_go_proto",
++    importpath = "github.com/bazelbuild/bazel/src/main/protobuf",
++    proto = ":failure_details_proto",
 +)
 +
 +go_proto_library(
@@ -66,9 +73,10 @@ index 8056e19349..d5c6f8df70 100644
 +)
 +
 +go_library(
-+    name = "go_default_library",
++    name = "protobuf_go",
 +    embed = [
 +        ":command_line_go_proto",
++        ":failure_details_go_proto",
 +        ":option_filters_go_proto",
 +        ":invocation_policy_go_proto",
 +    ],
@@ -76,38 +84,54 @@ index 8056e19349..d5c6f8df70 100644
 +    visibility = ["//visibility:public"],
 +)
 diff --git src/main/protobuf/command_line.proto src/main/protobuf/command_line.proto
-index d5fa6aceb8..07fac0a85a 100644
+index d5fa6aceb..7e5027132 100644
 --- src/main/protobuf/command_line.proto
 +++ src/main/protobuf/command_line.proto
-@@ -17,6 +17,7 @@ package command_line;
- 
+@@ -18,6 +18,8 @@ package command_line;
  // option java_api_version = 2;
  option java_package = "com.google.devtools.build.lib.runtime.proto";
-+option go_package = "github.com/bazelbuild/bazel/src/main/protobuf";
  
++option go_package = "github.com/bazelbuild/bazel/src/main/protobuf";
++
  import "src/main/protobuf/option_filters.proto";
  
+ // Representation of a Bazel command line.
+diff --git src/main/protobuf/failure_details.proto src/main/protobuf/failure_details.proto
+index 7153ca7eb..7b86b5661 100644
+--- src/main/protobuf/failure_details.proto
++++ src/main/protobuf/failure_details.proto
+@@ -23,6 +23,8 @@ package failure_details;
+ 
+ option java_package = "com.google.devtools.build.lib.server";
+ 
++option go_package = "github.com/bazelbuild/bazel/src/main/protobuf";
++
+ import "google/protobuf/descriptor.proto";
+ 
+ message FailureDetailMetadata {
 diff --git src/main/protobuf/invocation_policy.proto src/main/protobuf/invocation_policy.proto
-index 53572ac120..27f5889452 100644
+index 53572ac12..d07478ecf 100644
 --- src/main/protobuf/invocation_policy.proto
 +++ src/main/protobuf/invocation_policy.proto
-@@ -17,6 +17,7 @@ package blaze.invocation_policy;
- 
+@@ -18,6 +18,8 @@ package blaze.invocation_policy;
  // option java_api_version = 2;
  option java_package = "com.google.devtools.build.lib.runtime.proto";
-+option go_package = "github.com/bazelbuild/bazel/src/main/protobuf";
  
++option go_package = "github.com/bazelbuild/bazel/src/main/protobuf";
++
  // The --invocation_policy flag takes a base64-encoded binary-serialized or text
  // formatted InvocationPolicy message.
+ message InvocationPolicy {
 diff --git src/main/protobuf/option_filters.proto src/main/protobuf/option_filters.proto
-index 782620d053..a6fc797136 100644
+index 782620d05..37524d95b 100644
 --- src/main/protobuf/option_filters.proto
 +++ src/main/protobuf/option_filters.proto
-@@ -16,6 +16,7 @@ package options;
- 
+@@ -17,6 +17,8 @@ package options;
  // option java_api_version = 2;
  option java_package = "com.google.devtools.common.options.proto";
-+option go_package = "github.com/bazelbuild/bazel/src/main/protobuf";
  
++option go_package = "github.com/bazelbuild/bazel/src/main/protobuf";
++
  // IMPORTANT NOTE: These two enums must be kept in sync with their Java
  // equivalents in src/main/java/com/google/devtools/common/options.
+ // Changing this proto has specific compatibility requirements, please see the

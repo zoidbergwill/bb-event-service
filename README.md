@@ -34,3 +34,28 @@ Prebuilt container images of Buildbarn Event Service may be found on
 [Docker Hub](https://hub.docker.com/r/buildbarn/bb-event-service).
 Examples of how the Buildbarn Event Service may be deployed and used can
 be found in [the Buildbarn deployments repository](https://github.com/buildbarn/bb-deployments).
+
+## Updating the bazel git patch
+
+Inspired by https://github.com/EdSchouten/bazel/commit/ae0bd93386ccf9c7e7481829dc9fbb8179b38396
+
+```
+git@github.com:zoidbergwill/bazel.git
+cd bazel
+git remote add upstream git@github.com:bazelbuild/bazel.git
+git checkout zoid/bb-event-service
+git diff-index -p upstream/master . > build_event_stream.diff
+git pull upstream master
+```
+
+A better guide lives in rules_go [here](https://github.com/bazelbuild/rules_go/wiki/Updating-dependencies#how-to-update)
+
+## Stuff I manually need to sprinkle in redis v8 and redisext at the moment for some reason
+
+```
+        "@io_opentelemetry_go_otel//api/global",
+        "@io_opentelemetry_go_otel//api/metric",
+        "@io_opentelemetry_go_otel//api/trace",
+```
+
+A better option might be teaching bb_storage's go_dependencies about ignoring already imported repos, and then changing redis/v8 and redisext to be http_archive's with patches that add correct BUILD files.

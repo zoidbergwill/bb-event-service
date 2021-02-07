@@ -3,7 +3,7 @@ load("@io_bazel_rules_docker//go:image.bzl", "go_image")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 
 go_library(
-    name = "go_default_library",
+    name = "bb_event_service_lib",
     srcs = [
         "build_event_server.go",
         "main.go",
@@ -11,36 +11,37 @@ go_library(
     importpath = "github.com/buildbarn/bb-event-service/cmd/bb_event_service",
     visibility = ["//visibility:private"],
     deps = [
-        "//pkg/proto/configuration/bb_event_service:go_default_library",
-        "@com_github_bazelbuild_bazel//src/main/java/com/google/devtools/build/lib/buildeventstream/proto:go_default_library",
-        "@com_github_bazelbuild_remote_apis//build/bazel/remote/execution/v2:go_default_library",
-        "@com_github_buildbarn_bb_storage//pkg/blobstore:go_default_library",
-        "@com_github_buildbarn_bb_storage//pkg/blobstore/buffer:go_default_library",
-        "@com_github_buildbarn_bb_storage//pkg/blobstore/configuration:go_default_library",
-        "@com_github_buildbarn_bb_storage//pkg/grpc:go_default_library",
-        "@com_github_buildbarn_bb_storage//pkg/util:go_default_library",
+        "//pkg/proto/configuration/bb_event_service",
+        "@com_github_bazelbuild_bazel//src/main/java/com/google/devtools/build/lib/buildeventstream/proto:build_event_stream_go",
+        "@com_github_bazelbuild_remote_apis//build/bazel/remote/execution/v2:execution",
+        "@com_github_buildbarn_bb_storage//pkg/blobstore",
+        "@com_github_buildbarn_bb_storage//pkg/blobstore/buffer",
+        "@com_github_buildbarn_bb_storage//pkg/blobstore/configuration",
+        "@com_github_buildbarn_bb_storage//pkg/digest",
+        "@com_github_buildbarn_bb_storage//pkg/global",
+        "@com_github_buildbarn_bb_storage//pkg/grpc",
+        "@com_github_buildbarn_bb_storage//pkg/util",
         "@com_github_golang_protobuf//proto:go_default_library",
         "@com_github_golang_protobuf//ptypes:go_default_library_gen",
-        "@com_github_gorilla_mux//:go_default_library",
-        "@com_github_matttproud_golang_protobuf_extensions//pbutil:go_default_library",
+        "@com_github_matttproud_golang_protobuf_extensions//pbutil",
         "@go_googleapis//google/devtools/build/v1:build_go_proto",
         "@io_bazel_rules_go//proto/wkt:empty_go_proto",
         "@org_golang_google_grpc//:go_default_library",
-        "@org_golang_google_grpc//codes:go_default_library",
-        "@org_golang_google_grpc//status:go_default_library",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
     ],
 )
 
 go_binary(
     name = "bb_event_service",
-    embed = [":go_default_library"],
+    embed = [":bb_event_service_lib"],
     pure = "on",
     visibility = ["//visibility:public"],
 )
 
 go_image(
     name = "bb_event_service_container",
-    embed = [":go_default_library"],
+    embed = [":bb_event_service_lib"],
     pure = "on",
     visibility = ["//visibility:public"],
 )

@@ -13,7 +13,7 @@ import (
 	remoteexecution "github.com/bazelbuild/remote-apis/build/bazel/remote/execution/v2"
 	"github.com/buildbarn/bb-storage/pkg/blobstore"
 	"github.com/buildbarn/bb-storage/pkg/blobstore/buffer"
-	"github.com/buildbarn/bb-storage/pkg/util"
+	"github.com/buildbarn/bb-storage/pkg/digest"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/empty"
@@ -79,18 +79,24 @@ func (bes *buildEventServer) processBuildToolEvent(ctx context.Context, in *buil
 		// Convert the invocation ID to a digest, so that we can
 		// create fictive AC entries for this stream.
 		hash := sha256.Sum256([]byte(streamID.InvocationId))
-		actionDigest, err := util.NewDigest(bes.instanceName, &remoteexecution.Digest{
-			Hash: hex.EncodeToString(hash[:]),
-		})
+		instanceName, err := digest.NewInstanceName(bes.instanceName)
+		if err != nil {
+			return nil, err
+		}
+		actionDigest, err := instanceName.NewDigest(hex.EncodeToString(hash[:]), int64(len(hash)))
 		if err != nil {
 			return nil, err
 		}
 
 		// Write the full stream into the CAS.
 		data := state.bazelBuildEvents.Bytes()
-		digestGenerator := actionDigest.NewDigestGenerator()
-		digestGenerator.Write(data)
-		streamDigest := digestGenerator.Sum()
+		digestFunction, err := instanceName.GetDigestFunction(remoteexecution.DigestFunction_SHA256)
+		if err != nil {
+			return nil, err
+		}
+		g := digestFunction.NewGenerator()
+		g.Write(data)
+		streamDigest := g.Sum()
 		if err := bes.contentAddressableStorage.Put(
 			ctx, streamDigest,
 			buffer.NewValidatedBufferFromByteSlice(data)); err != nil {
@@ -102,16 +108,15 @@ func (bes *buildEventServer) processBuildToolEvent(ctx context.Context, in *buil
 		if err := bes.actionCache.Put(
 			ctx,
 			actionDigest,
-			buffer.NewACBufferFromActionResult(
+			buffer.NewProtoBufferFromProto(
 				&remoteexecution.ActionResult{
 					OutputFiles: []*remoteexecution.OutputFile{
 						{
-							Path:   "build-event-stream",
-							Digest: streamDigest.GetPartialDigest(),
+							Path:   digestFunction.GetInstanceName().String(),
 						},
 					},
 				},
-				buffer.Irreparable)); err != nil {
+				buffer.UserProvided)); err != nil {
 			return nil, err
 		}
 
